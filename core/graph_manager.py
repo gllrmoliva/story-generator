@@ -1,45 +1,30 @@
 import networkx as nx
 import json
 import matplotlib.pyplot as plt
-
-# TODO
-# - Implemetar función load y save, puede ser util para no gastar tantos tokens.
-# Habría que guardar datos en una carpeta distinta por generación probablemente.
-# - agregar relaciones a grafo del mundo
+import os
+from typing import Dict, List, Optional, Union, Any
 
 class CharactersGraph:
     def __init__(self):
-        # se usa digrafo, ya que relaciones no siempre son simétricas
+        # Se usa digrafo, ya que relaciones no siempre son simétricas
         self.graph = nx.DiGraph()
 
-    def add_character(self, name, description, backstory):
+    def add_character(self, name: str, description: Dict[str, Any], backstory: str):
         """
-        añadir un personaje al grafo.
-        
-        Args:
-            name (str): nombre. (no se repiten entre personajes)
-            description (dict): diccionario con claves como 'clase', 'edad', 'raza', etc.
-            backstory (str): historia del personaje.
+        Añade un personaje al grafo.
         """
-
         self.graph.add_node(
             name, 
             description=description, 
             backstory=backstory
         )
 
-    def add_relationship(self, char_a_name, char_b_name, relation_type, description=""):
+    def add_relationship(self, char_a_name: str, char_b_name: str, relation_type: str, description: str = ""):
         """
-        añadir relación entre dos personajes.
-        
-        Args:
-            char_a_name (str): personaje de origen.
-            char_b_name (str): personaje de destino.
-            relation_type (str): relación.
-            description (str, optional): información extra.
+        Añade relación dirigida entre dos personajes.
         """
         if not self.graph.has_node(char_a_name) or not self.graph.has_node(char_b_name):
-            print("ERROR: uno o ambos personajes no existen. No se puede crear relación.")
+            print(f"Warning: Intento de relacionar personajes inexistentes ({char_a_name} -> {char_b_name}).")
             return
             
         self.graph.add_edge(
@@ -49,29 +34,20 @@ class CharactersGraph:
             details=description
         )
 
-    def get_character_info(self, name):
-        """obtener información de un nodo de personaje."""
+    def get_character_info(self, name: str) -> Optional[Dict]:
+        """Obtener información de un nodo de personaje."""
         if self.graph.has_node(name):
             return self.graph.nodes[name]
         return None
 
-    def get_relationships(self, name):
-        """obtener las relaciones de un personaje."""
-        if not self.graph.has_node(name):
-            return None
-        
-        outgoing = [(v, data) for u, v, data in self.graph.out_edges(name, data=True)]
-        incoming = [(u, data) for u, v, data in self.graph.in_edges(name, data=True)]
-        
-        return {"outgoing": outgoing, "incoming": incoming}
-
-    def to_llm_context_string(self):
-        """
-        Transforma toda la información del grafo a un string que un LLM puede entender.
-        """
+    def to_llm_context_string(self) -> str:
+        """Transforma toda la información del grafo a un string legible por LLM."""
         context = "### Character Knowledge Base ###\n\n"
         
         context += "== Characters ==\n"
+        if not self.graph.nodes:
+            context += "(No characters defined yet)\n"
+
         for node, data in self.graph.nodes(data=True):
             context += f"-- Character: {node} --\n"
             context += "Description:\n"
@@ -79,37 +55,74 @@ class CharactersGraph:
                 context += f"  - {key.capitalize()}: {val}\n"
             context += f"Back History: {data.get('backstory', 'N/A')}\n\n"
         
-        context += "== Relationships between characters ==\n"
+        context += "== Relationships ==\n"
+        if not self.graph.edges:
+            context += "(No relationships defined)\n"
+
         for u, v, data in self.graph.edges(data=True):
-            relation = data.get('type', 'relationed with')
-            details = f" (Details: {data['details']})" if data.get('details') else ""
-            context += f"[{u}] --({relation})--> [{v}]{details}\n"
+            relation = data.get('type', 'related to')
+            details = f" ({data['details']})" if data.get('details') else ""
+            context += f"[{u}] --{relation}--> [{v}]{details}\n"
             
         return context
 
-    def to_json(self):
-        """Convertir grafo a JSON."""
+    def to_dict(self) -> Dict:
+        """Retorna el grafo en formato diccionario (compatible con JSON)."""
+        return nx.node_link_data(self.graph)
 
-        data = nx.node_link_data(self.graph)
-        return json.dumps(data, indent=2, ensure_ascii=False)
+    def to_json(self) -> str:
+        """Retorna string JSON."""
+        return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
 
-    def to_png(self):
+    def to_png(self, output_path: str = "characters_graph.png"):
+        """
+        Guarda el grafo como PNG.
+        Args:
+            output_path: Puede ser un nombre de archivo (ej: "mi_grafo.png") 
+                         o un directorio existente.
+        """
+        if self.graph.number_of_nodes() == 0:
+            print("Graph is empty, skipping PNG generation.")
+            return
 
-        pos = nx.spring_layout(self.graph, k=0.8)
+        # Lógica inteligente para determinar la ruta
+        if os.path.isdir(output_path):
+            # Si es un directorio, añadimos el nombre por defecto
+            filepath = os.path.join(output_path, "characters_graph.png")
+        else:
+            # Si no, asumimos que es el path completo del archivo
+            filepath = output_path
+            # Aseguramos que el directorio padre exista
+            os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
 
-        nx.draw(self.graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size = 2500)
+        plt.figure(figsize=(10, 8))
+        
+        # Seed para que el grafo no "baile" cada vez que se genera
+        pos = nx.spring_layout(self.graph, k=0.9, seed=42)
+
+        nx.draw(
+            self.graph, pos, 
+            with_labels=True, 
+            node_color='lightblue', 
+            edge_color='gray', 
+            node_size=3000,
+            font_size=9,
+            font_weight='bold',
+            arrows=True
+        )
 
         edge_labels = { (u, v): data.get("type", "") for u, v, data in self.graph.edges(data=True) }
+        nx.draw_networkx_edge_labels(self.graph, pos, edge_labels=edge_labels, font_size=8, label_pos=0.5)
 
-        nx.draw_networkx_edge_labels(self.graph,pos, edge_labels=edge_labels, font_size=8, label_pos=0.5)
-
-        plt.savefig("characters_graph.png", format="png", dpi=300, bbox_inches='tight')
+        plt.title("Character Relationships Map")
+        plt.savefig(filepath, format="png", dpi=300, bbox_inches='tight')
         plt.close()
-        print("Se ha guardado el Grafo de Personajes en .png correctamente!")
+        print(f"    [Graph] Characters Graph guardado en: {filepath}")
 
 
 class WorldbuildingGraph:
     def __init__(self):
+        # Definimos los grafos internos
         self.graphs = {
             "ontological": nx.Graph(),
             "material": nx.Graph(),
@@ -117,23 +130,15 @@ class WorldbuildingGraph:
             "historical": nx.Graph()
         }
 
-        """
-        - ontological: Cómo y por qué existe el mundo. Sus leyes internas: físicas, mágicas o metafísicas. 
-        - material: La configuración física del entorno y sus recursos. Geografía, clima, ecosistemas y su relación con la vida que los habita.
-        - sociocultural: Cómo se estructura la vida colectiva: poder, creencias, costumbres, valores. Instituciones, jerarquías, religión, arte, lenguaje.
-        - historical: El pasado y la memoria del mundo: origen, evolución, conflictos y mitos. La tensión entre lo que fue, lo que es y lo que podría ser.
-        """
-
-    def add_foundation(self, name, category, description):
-
+    def add_foundation(self, name: str, category: str, description: str):
         if category not in self.graphs:
-            print(f"ERROR: categoria inválida'{category}'.")
+            print(f"Error: Categoría '{category}' desconocida.")
             return
 
         g = self.graphs[category]
         if g.has_node(name):
-            print(f"WARNING: elemento '{name}' ya existe en '{category}'.")
-            return
+            # Actualizar si existe (opcional) o ignorar
+            pass
 
         g.add_node(
             name,
@@ -141,15 +146,17 @@ class WorldbuildingGraph:
             description=description
         )
 
-    def add_relation(self, category, source, target, relation_type, explanation=""):
+    def add_relation(self, category: str, source: str, target: str, relation_type: str, explanation: str = ""):
         if category not in self.graphs:
-            print(f"ERROR: categoria inválida'{category}'.")
             return
         
         g = self.graphs[category]
-        if not g.has_node(source) or not g.has_node(target):
-            print("ERROR: al menos uno de los elementos no existe en el grafo.")
-            return
+        # Crear nodos si no existen para evitar crashes,
+        # aunque lo ideal es que existan.
+        if not g.has_node(source):
+            g.add_node(source, description="Unknown entity")
+        if not g.has_node(target):
+            g.add_node(target, description="Unknown entity")
 
         g.add_edge(
             source,
@@ -158,85 +165,84 @@ class WorldbuildingGraph:
             explanation=explanation
         )
 
-    def get_foundation_info(self, category, name):
-        g = self.graphs.get(category)
-        if not g or not g.has_node(name):
-            return None
-        return g.nodes[name]
-
-    def get_relations(self, category, name):
-        g = self.graphs.get(category)
-        if not g or not g.has_node(name):
-            return None
-
-        outgoing = [(v, data) for u, v, data in g.out_edges(name, data=True)]
-        incoming = [(u, data) for u, v, data in g.in_edges(name, data=True)]
-        
-        return {"outgoing": outgoing, "incoming": incoming}
-
-    def to_llm_context_string(self):
-        context = "### Worldbuilding Multi-Graph ###\n\n"
-
+    def to_llm_context_string(self) -> str:
+        context = "### Worldbuilding Context ###\n\n"
         for category, g in self.graphs.items():
-            context += f"== {category.upper()} ==\n"
-            if not g.nodes:
-                context += "(no foundations defined)\n\n"
+            context += f"== {category.upper()} DOMAIN ==\n"
+            if g.number_of_nodes() == 0:
+                context += "(Empty)\n\n"
                 continue
 
             for node, data in g.nodes(data=True):
-                context += f"-- Foundation: {node} --\n"
-                context += f"Description: {data.get('description')}\n"
-                if data.get('details'):
-                    context += "Details:\n"
-                    for k, v in data['details'].items():
-                        context += f"  - {k.capitalize()}: {v}\n"
-                context += "\n"
-
-            context += "Relations:\n"
-            for u, v, data in g.edges(data=True):
-                relation = data.get('type', 'related to')
-                expl = f" (Explanation: {data['explanation']})" if data.get('explanation') else ""
-                context += f"[{u}] --({relation})--> [{v}]{expl}\n"
+                context += f"* {node}: {data.get('description', 'No description')}\n"
+            
+            if g.number_of_edges() > 0:
+                context += "  Relationships:\n"
+                for u, v, data in g.edges(data=True):
+                    expl = f" ({data.get('explanation')})" if data.get('explanation') else ""
+                    context += f"    - {u} is {data.get('type')} {v}{expl}\n"
             context += "\n"
         return context
 
-    def to_json(self):
-        """Export all subgraphs into a structured JSON file."""
-
-        all_data = {
+    def to_dict(self) -> Dict:
+        """Exporta todos los subgrafos a un diccionario."""
+        return {
             category: nx.node_link_data(g)
             for category, g in self.graphs.items()
         }
-        return json.dumps(all_data, indent=2, ensure_ascii=False)
 
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=2, ensure_ascii=False)
 
-if __name__ == "__main__":
+    def to_png(self, output_dir: str = ".", layout: str = "spring"):
+        """
+        Genera imágenes PNG para cada sub-grafo.
+        
+        Args:
+            output_dir: Directorio donde se guardarán las imágenes.
+            layout: Algoritmo de distribución (para distribuir nodos).
+        """
+        # Asegurar que el directorio existe
+        os.makedirs(output_dir, exist_ok=True)
 
-    char_graph = CharactersGraph()
-    
-    juanito_desc= {
-        "class": "Caballero",
-        "age": 27,
-        "race": "Humano",
-        "sex": "Masculino",
-        "physical_description": "Alto, cabello oscuro, ojos grises, aspecto rudo pero noble."
-    }
-    
-    juanita_desc = {
-        "class": "Princesa",
-        "age": 2778,
-        "race": "Medioelfa",
-        "sex": "Femenino",
-        "physical_description": "Belleza etérea, cabello oscuro, ojos claros."
-    }
-    
-    char_graph.add_character("Juanito", juanito_desc, "Es un caballero muy valiente.")
-    char_graph.add_character("Juanita", juanita_desc, "Es una elfa muy bonita.")
-    char_graph.add_character("Pedrito", {"clase": "Mago", "raza": "Medioelfo"}, "El magordito")
-    
-    char_graph.add_relationship("Juanito", "Juanita", "ama_a", "Están prometidos.")
-    char_graph.add_relationship("Juanita", "Juanito", "ama_a", "Renunciará a su herencia por él.")
-    char_graph.add_relationship("Pedrito", "Juanito", "mentor_de", "Actuó como su mentor.")
-    char_graph.add_relationship("Pedrito", "Juanita", "padre_de")
-    
-    char_graph.to_png()
+        layouts = {
+            "spring": lambda G: nx.spring_layout(G, k=0.8, seed=42), # Seed para consistencia
+            "circular": nx.circular_layout,
+            "shell": nx.shell_layout
+        }
+        
+        layout_func = layouts.get(layout, layouts["spring"])
+
+        for category, g in self.graphs.items():
+            if g.number_of_nodes() == 0:
+                continue
+
+            plt.figure(figsize=(8, 6))
+            try:
+                pos = layout_func(g)
+                
+                nx.draw(
+                    g, pos,
+                    with_labels=True,
+                    node_color="#98FB98", # PaleGreen
+                    edge_color="#555555",
+                    node_size=2000,
+                    font_size=8,
+                    font_weight="bold"
+                )
+
+                edge_labels = { (u, v): data.get("type", "") for u, v, data in g.edges(data=True) }
+                nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_labels, font_size=7)
+
+                # Construir ruta
+                filename = f"{category}_graph.png"
+                filepath = os.path.join(output_dir, filename)
+                
+                plt.title(f"World: {category.capitalize()}")
+                plt.savefig(filepath, format="png", dpi=300, bbox_inches="tight")
+                print(f"    [Graph] {category.capitalize()} guardado en: {filepath}")
+                
+            except Exception as e:
+                print(f"    [Error] Fallo dibujando grafo {category}: {e}")
+            finally:
+                plt.close() #LIBERAR!!!!

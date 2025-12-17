@@ -18,7 +18,6 @@ class StorylineNode:
     subject: str
     verb: str
     object: str
-    metadata: Dict[str, Any] = field(default_factory=dict) # extra information
 
 @dataclass
 class Chapter:

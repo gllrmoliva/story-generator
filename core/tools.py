@@ -239,3 +239,42 @@ OUTLINE_FORCE_TOOL = {
     "function": {"name": "create_outline"}
 }
 
+##############################################
+####       SUBJECT OBJECT VERB            ####
+##############################################
+
+STORYLINE_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "generate_storyline_nodes",
+        "description": "Extracts a sequential list of narrative events (nodes) from a text in Subject-Verb-Object format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "description": "Chronologically ordered list of events.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "subject": {
+                                "type": "string",
+                                "description": "The entity performing the action (use proper nouns if available)."
+                            },
+                            "verb": {
+                                "type": "string",
+                                "description": "The action being performed (in active voice)."
+                            },
+                            "object": {
+                                "type": "string",
+                                "description": "The entity receiving the action."
+                            }
+                        },
+                        "required": ["subject", "verb", "object"]
+                    }
+                }
+            },
+            "required": ["nodes"]
+        }
+    }
+}

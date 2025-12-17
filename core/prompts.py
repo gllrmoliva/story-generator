@@ -13,7 +13,7 @@ Focus on coherent, creative, and logically consistent entities that enrich a fan
 
 ### INSTRUCTIONS:
 
-1. Generate between 5 and 10 entities.
+1. Generate 5 entities.
 2. Each entity must include:
    - name: A distinctive, memorable name that fits the tone of the world.
    - description: A short description explaining its nature, purpose, and relevance within the world context.
@@ -30,7 +30,7 @@ NEVER USE THE " or ' Symbol.
 CHAR_GEN_INSTRUCTION = """
 You are an expert worldbuilder and character designer specialized in creating rich, consistent fantasy characters.
 
-Your task is to generate between 7 and 10 characters according to the schema provided. Generate all the posible characters to create a good story.
+Your task is to generate 5 characters according to the schema provided. Generate all the posible characters to create a good story.
 Each character must be coherent with the established world, its lore, tone, and internal logic. 
 The characters should fit naturally into the universe’s setting - respecting its history, social structures, technology level, magic systems, and cultural norms.
 
@@ -47,31 +47,39 @@ Focus on internal coherence, depth, and narrative purpose rather than random gen
 NEVER USE THE " or ' Symbol.
 """
 
+
 RELATIONS_GEN_INSTRUCTION = """
 You are an expert worldbuilding assistant specialized in generating detailed interpersonal relationships between fictional characters.
 
-Your task is to create and describe relationships between pairs of existing characters. For each pair, specify:
-1. The name of Character A.
-2. The name of Character B.
-3. The type of relationship between them, **from A’s perspective toward B** (e.g., friendship, rivalry, kinship, alliance, enmity, mentorship, romantic interest, etc.).
-4. A concise but rich description that explains the context, emotional dynamics, and notable events that define this relationship.
+Your task is to create unidirectional relationships between characters without privileging any specific protagonist. You must generate relationships among multiple pairs, including but not limited to main characters, secondary characters, and tertiary characters.
 
-Important:
-- Relationships are unidirectional. If two characters share a mutual bond (e.g., marriage, friendship, rivalry), you must create two separate entries:
-  - One for A → B.
-  - One for B → A.
-- Each entry should reflect the perspective and emotions of the character named as Character A.
+Rules:
+1. Do not center all relationships on a single character. Distribute relationship pairs across the entire cast.
+2. Use diverse pairings. Avoid repeating the same character more than necessary.
+3. Ensure that the total output includes:
+   - Relationships between secondary characters.
+   - Relationships where neither character is a protagonist.
+   - Several pairs that would not usually interact unless context justifies it.
+
+For each relationship entry specify:
+1. Character A name.
+2. Character B name.
+3. Type of relationship from A to B.
+4. Concise but rich description explaining context, emotional dynamics, and notable events.
+
+Unidirectional constraint:
+Every relationship is directional. If a bond is mutual, generate two separate entries.
 
 Guidelines:
-- Ensure consistency with the known personalities, backgrounds, and roles of the characters.
+- Keep consistency with personalities, roles, and histories.
 - Use coherent and natural language suitable for narrative or character database use.
-- Each relationship entry must be self-contained and understandable without external context.
-- Avoid introducing unrelated characters or irrelevant world details.
-- If a relationship already exists, expand or refine it rather than repeating identical information.
-- Maintain a tone that is analytical, precise, and creatively insightful.
-- NEVER USE THE " or ' Symbol.
+- No external or irrelevant world details.
+- If a relationship already exists, refine or expand it instead of repeating it.
+- Maintain an analytical, precise, and creatively insightful tone.
+- Do not use the symbol " or the symbol ' in any part of the generated content.
 
-Output your result as a JSON object following the schema defined in RELATION_TOOL_SCHEMA, using the 'create_relations' function call.
+Output:
+Return a JSON object conforming to RELATION_TOOL_SCHEMA through the create_relations function call.
 """
 
 RELATIONS_BETWEEN_ENTITIES_INSTRUCTION = """
@@ -118,7 +126,7 @@ Do not paraphrase or compress superficially; extract and articulate the deeper s
 OUTLINES_GEN_INSTRUCTION = """
 You are a writing assistant specialized in narrative structure and story planning. The user will provide a context (such as setting, genre, or premise), world rules/entitys and a list of characters (with their traits, motivations, or relationships).
 
-Your task is to create a detailed outline for a story with at least 15 different chapters that fits this context and integrates the given characters logically and coherently.
+Your task is to create a detailed outline for a story with 4 different chapters that fits this context and integrates the given characters logically and coherently.
 
 Each outline section must include:
 

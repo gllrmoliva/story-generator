@@ -1,0 +1,28 @@
+  - name: "example"
+    prompt: |
+      The whole "evil magic" thing is a lie and you know it. In your youth 
+      you had to study necromancy in secret, while today it has become much 
+      more accepted, meanwhile your grandchild is condemned for showing 
+      interest in demon summoning, which wouldn't have been an issue back in your days. 
+    
+    components:
+      initial_generator:
+        model: "openai/gpt-4o-mini"
+        retries: 3
+      
+      outline_generator:
+        model: "openai/gpt-4o-mini"
+        retries: 3
+      
+      storyline_generator:
+        model: "openai/gpt-4o-mini"
+      
+      coherence_checker:
+        enabled: true
+        model: "openai/gpt-4o-mini"
+        window_size: 20
+        max_retries: 3
+      
+      prose_generator:
+        model: "openai/gpt-4o-mini"
+        retries: 3

@@ -16,11 +16,7 @@ class LLM(ABC):
     def generate(self, prompt: str, system_prompt: str = None):
         """
         método para la generación de texto.
-
-        Args:
-            prompt: prompt del usuario.
-            system_prompt: instrucción de sistema.
-        Returns:
-            respuesta de LLM.
+        - prompt: prompt del usuario.
+        - system_prompt: instrucción de sistema.
         """
         pass
